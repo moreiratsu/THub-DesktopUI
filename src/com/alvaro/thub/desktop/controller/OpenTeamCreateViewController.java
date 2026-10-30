@@ -5,7 +5,7 @@ import java.awt.event.ActionEvent;
 import javax.swing.AbstractAction;
 
 import com.alvaro.thub.desktop.MainWindow;
-import com.alvaro.thub.desktop.views.TeamView;
+import com.alvaro.thub.desktop.views.TeamCreateView;
 import com.alvaro.thub.desktop.views.UserView;
 
 /**
@@ -19,7 +19,7 @@ public class OpenTeamCreateViewController extends AbstractController{
 	}
 
 	public void doAction() {
-		TeamView teamCreateView = new TeamView();
+		TeamCreateView teamCreateView = new TeamCreateView();
 		teamCreateView.setEditable(true);
 		MainWindow.getInstance().addClosableView(teamCreateView.getName(), teamCreateView);			
 	}

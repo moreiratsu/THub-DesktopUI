@@ -14,7 +14,7 @@ import javax.swing.table.TableCellEditor;
 import com.alvaro.thub.desktop.MainWindow;
 import com.alvaro.thub.model.TeamDTO;
 import com.alvaro.thub.desktop.controller.TeamUpdateController;
-import com.alvaro.thub.desktop.views.TeamView;
+import com.alvaro.thub.desktop.views.TeamCreateView;
 import com.alvaro.thub.service.TeamService;
 import com.alvaro.thub.service.impl.TeamServiceImpl;
 
@@ -35,7 +35,7 @@ public class TeamButtonEditor extends AbstractCellEditor implements TableCellEdi
         deleteButton = new JButton("Eliminar");
         
         editButton.addActionListener(e -> {
-            TeamView teamView = new TeamView();
+            TeamCreateView teamView = new TeamCreateView();
             teamView.setModel(equipo);
             teamView.setEditable(true);
             teamView.setAgreeController(new TeamUpdateController(teamView));

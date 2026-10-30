@@ -5,7 +5,7 @@ import java.awt.event.ActionEvent;
 import javax.swing.AbstractAction;
 import javax.swing.ImageIcon;
 
-import com.alvaro.thub.desktop.views.TeamView;
+import com.alvaro.thub.desktop.views.TeamCreateView;
 
 /**
  * Este controlador se encarga de cambiar la vista del equipo a modo editable.
@@ -16,14 +16,14 @@ import com.alvaro.thub.desktop.views.TeamView;
 
 public class TeamSetEditableController extends AbstractController {
 
-	private TeamView view = null;
+	private TeamCreateView view = null;
 
-	public TeamSetEditableController(TeamView view) {
+	public TeamSetEditableController(TeamCreateView view) {
 		super(view, "Editar", new ImageIcon(TeamSearchController.class.getResource("/nuvola/editarx16.png")) ); 	
 	}
 
 	public void doAction() {
-		TeamView view = (TeamView) getView();
+		TeamCreateView view = (TeamCreateView) getView();
 		view.setEditable(true);
 		view.setAgreeController(new TeamUpdateController(view));
 	}

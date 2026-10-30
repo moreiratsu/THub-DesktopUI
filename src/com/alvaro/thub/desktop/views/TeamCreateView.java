@@ -14,16 +14,20 @@ import javax.swing.SwingUtilities;
 import org.apache.commons.lang3.StringUtils;
 
 import com.alvaro.thub.model.TeamDTO;
+import com.alvaro.thub.model.ContentData;
+import com.alvaro.thub.model.ContentMetadata;
 import com.alvaro.thub.model.Country;
 import com.alvaro.thub.model.ProvinceDTO;
 import com.alvaro.thub.model.LocalityDTO;
 import com.alvaro.thub.model.Sport;
 import com.alvaro.thub.service.TeamService;
+import com.alvaro.thub.service.ContentService;
 import com.alvaro.thub.service.CountryService;
 import com.alvaro.thub.service.ProvinceService;
 import com.alvaro.thub.service.LocalityService;
 import com.alvaro.thub.service.SportService;
 import com.alvaro.thub.service.impl.TeamServiceImpl;
+import com.alvaro.thub.service.impl.ContentServiceFileImpl;
 import com.alvaro.thub.service.impl.CountryServiceImpl;
 import com.alvaro.thub.service.impl.ProvinceServiceImpl;
 import com.alvaro.thub.service.impl.LocalityServiceImpl;
@@ -33,11 +37,13 @@ import com.alvaro.thub.desktop.controller.CancelController;
 import com.alvaro.thub.desktop.controller.CountryCBController;
 import com.alvaro.thub.desktop.controller.ProvinceCBController;
 import com.alvaro.thub.desktop.controller.TeamCreateController;
+import com.alvaro.thub.desktop.controller.TeamUploadLogoController;
 import com.alvaro.thub.desktop.views.renderer.CountryCBRenderer;
 import com.alvaro.thub.desktop.views.renderer.ProvinceCBRenderer;
 import com.alvaro.thub.desktop.views.renderer.LocalityCBRenderer;
 import com.alvaro.thub.desktop.views.renderer.SportCBRenderer;
 
+import java.awt.Image;
 import java.awt.Insets;
 import java.awt.Window;
 import java.awt.event.ActionListener;
@@ -55,12 +61,9 @@ import java.awt.event.ActionEvent;
 
 /**
  * VISTA PARA LA CREACION Y EDICION de EQUIPOS deportivos.
- * Permite ingresar el nombre, las siglas, seleccionar el deporte, país, provincia y localidad del equipo.
- * El mismo formulario se utiliza tanto para crear un nuevo equipo como para editar uno existente,
- * dependiendo de si se le asigna un modelo con ID o no.
+ * Permite ingresar el nombre, las siglas, seleccionar el deporte, país, provincia, localidad y logo del equipo.
  */
-
-public class TeamView extends AbstractView {
+public class TeamCreateView extends AbstractView {
 	private JTextField nameTF;
 	private JTextField initialismTF;
 	private JPanel buttonsPanel;
@@ -77,13 +80,21 @@ public class TeamView extends AbstractView {
 	private CountryService countryService;
 	private ProvinceService provinceService;
 	private LocalityService localityService;
+	private ContentService contentService;
+
 	private JButton agreeButton;
 	private JButton cancelButton;
+	
+	// Declaración de los componentes del gestor de contenidos
+	private JLabel logoPreviewLabel;
+	private JButton uploadLogoButton;
+	private byte[] selectedLogoBytes = null; // Guardará temporalmente los bytes de la imagen seleccionada
+	private String selectedLogoExtension = null; // Guardará la extensión (.png, .jpg, etc.)
 	
 	// Variable de clase para almacenar el modelo del equipo que se está creando o editando
 	private TeamDTO teamModel = null;
 
-	public TeamView() {
+	public TeamCreateView() {
 		initServices();
 		initialize();
 		postInitialize();
@@ -98,9 +109,9 @@ public class TeamView extends AbstractView {
 		add(contentPanel, BorderLayout.NORTH);
 		GridBagLayout gbl_contentPanel = new GridBagLayout();
 		gbl_contentPanel.columnWidths = new int[]{0, 0, 0, 0, 0};
-		gbl_contentPanel.rowHeights = new int[]{0, 0, 0, 0, 0, 0, 0, 0};
+		gbl_contentPanel.rowHeights = new int[]{0, 0, 0, 0, 0, 0, 0, 0, 0};
 		gbl_contentPanel.columnWeights = new double[]{0.0, 1.0, 1.0, 1.0, Double.MIN_VALUE};
-		gbl_contentPanel.rowWeights = new double[]{1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE};
+		gbl_contentPanel.rowWeights = new double[]{1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE};
 		contentPanel.setLayout(gbl_contentPanel);
 
 		// NOMBRE
@@ -197,17 +208,40 @@ public class TeamView extends AbstractView {
 		JLabel localityLabel = new JLabel("Localidad:");
 		GridBagConstraints gbc_localityLabel = new GridBagConstraints();
 		gbc_localityLabel.anchor = GridBagConstraints.EAST;
-		gbc_localityLabel.insets = new Insets(0, 0, 0, 5);
+		gbc_localityLabel.insets = new Insets(0, 0, 5, 5);
 		gbc_localityLabel.gridx = 1;
 		gbc_localityLabel.gridy = 6;
 		contentPanel.add(localityLabel, gbc_localityLabel);
 				
 		GridBagConstraints gbc_localityCB = new GridBagConstraints();
-		gbc_localityCB.insets = new Insets(0, 0, 0, 5);
+		gbc_localityCB.insets = new Insets(0, 0, 5, 5);
 		gbc_localityCB.fill = GridBagConstraints.HORIZONTAL;
 		gbc_localityCB.gridx = 2;
 		gbc_localityCB.gridy = 6;
 		contentPanel.add(localityCB, gbc_localityCB);
+
+		// LOGO DEL EQUIPO
+		JLabel logoLabel = new JLabel("Logo:");
+		GridBagConstraints gbc_logoLabel = new GridBagConstraints();
+		gbc_logoLabel.anchor = GridBagConstraints.EAST;
+		gbc_logoLabel.insets = new Insets(0, 0, 0, 5);
+		gbc_logoLabel.gridx = 1;
+		gbc_logoLabel.gridy = 7;
+		contentPanel.add(logoLabel, gbc_logoLabel);
+
+		JPanel logoPanel = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 5, 0));
+		GridBagConstraints gbc_logoPanel = new GridBagConstraints();
+		gbc_logoPanel.insets = new Insets(0, 0, 0, 5);
+		gbc_logoPanel.fill = GridBagConstraints.HORIZONTAL;
+		gbc_logoPanel.gridx = 2;
+		gbc_logoPanel.gridy = 7;
+		contentPanel.add(logoPanel, gbc_logoPanel);
+
+		uploadLogoButton = new JButton("Adjuntar Foto");
+		logoPanel.add(uploadLogoButton);
+
+		logoPreviewLabel = new JLabel("Sin imagen");
+		logoPanel.add(logoPreviewLabel);
 
 		// PANEL DE LOS BOTONES DE GUARDAR Y CANCELAR:
 		buttonsPanel = new JPanel();
@@ -221,7 +255,7 @@ public class TeamView extends AbstractView {
 
 		// GUARDAR
 		agreeButton = new JButton("Guardar");
-		agreeButton.setIcon(new ImageIcon(TeamView.class.getResource("/nuvola/16x16/1710_ok_yes_accept_green_ok_green_accept_yes.png")));
+		agreeButton.setIcon(new ImageIcon(TeamCreateView.class.getResource("/nuvola/16x16/1710_ok_yes_accept_green_ok_green_accept_yes.png")));
 		GridBagConstraints gbc_agreeButton = new GridBagConstraints();
 		gbc_agreeButton.insets = new Insets(0, 0, 5, 5);
 		gbc_agreeButton.gridx = 4;
@@ -230,7 +264,7 @@ public class TeamView extends AbstractView {
 
 		// CANCELAR
 		cancelButton = new JButton("Cancelar");
-		cancelButton.setIcon(new ImageIcon(TeamView.class.getResource("/nuvola/16x16/1250_delete_delete.png")));
+		cancelButton.setIcon(new ImageIcon(TeamCreateView.class.getResource("/nuvola/16x16/1250_delete_delete.png")));
 		GridBagConstraints gbc_cancelButton = new GridBagConstraints();
 		gbc_cancelButton.insets = new Insets(0, 0, 5, 5);
 		gbc_cancelButton.gridx = 6;
@@ -277,21 +311,16 @@ public class TeamView extends AbstractView {
 		provinceCB.setModel(new DefaultComboBoxModel<>());
 		localityCB.setModel(new DefaultComboBoxModel<>());
 
-
 		// Controladores
 		agreeButton.setAction(new TeamCreateController(this));
 		cancelButton.setAction(new CancelController(this));
+		uploadLogoButton.setAction(new TeamUploadLogoController(this));
 
 		setEditable(false);
 
-		// TODO: dependiendo del rol del usuario logueado, podríamos establecer un controlador u otro (por ejemplo, si el usuario solo tiene permiso de lectura,
-		// no debería haber ningún controlador o debería ser un controlador que muestre un mensaje de error indicando que no tiene permisos para realizar esa acción)
-		
-		// Inicializamos la vista con un modelo vacío para que los campos no estén vacíos y se muestren los placeholders ...
-		setModel(new TeamDTO()); 
-
+		// Inicializamos la vista con un modelo vacío
+		setModel(new TeamDTO());
 	}
-
 
 	private void initServices() {
 		teamService = new TeamServiceImpl();
@@ -299,16 +328,14 @@ public class TeamView extends AbstractView {
 		countryService = new CountryServiceImpl();
 		provinceService = new ProvinceServiceImpl();
 		localityService = new LocalityServiceImpl();
+		contentService = new ContentServiceFileImpl();
 	}
 
 	/**
-	 * Recoge los datos ingresados en el formulario (CUANDO LE DOY A GUARDR), los valida y los asigna a un modelo de equipo (TeamDTO)
-	 * que luego se puede enviar al servicio para su creación o actualización.
+	 * Recoge los datos ingresados en el formulario y los devuelve en un objeto TeamDTO.
 	 * @return TeamDTO con los datos del formulario
 	 */
 	public TeamDTO getModel() {
-		
-		
 		teamModel.setName(StringUtils.trimToNull(nameTF.getText()));
 		teamModel.setInitialism(StringUtils.trimToNull(initialismTF.getText()));
 
@@ -323,26 +350,23 @@ public class TeamView extends AbstractView {
 			teamModel.setLocalityId(selectedLocality.getId());
 			teamModel.setLocalityName(selectedLocality.getName());
 		}
-		// El DAO se encargará de relacionar el equipo con la provincia y el país correspondientes a través de la localidad.
 
 		return teamModel;
 	}
 
 	/**
-	 * Asigna un modelo de equipo a la vista y actualiza los campos del formulario para mostrar los datos del equipo.
+	 * Asigna un modelo de equipo a la vista y actualiza los campos del formulario.
 	 * @param teamModel
 	 */
 	public void setModel(TeamDTO teamModel) {		
-		this.teamModel = teamModel; // Guardamos el equipo en la variable de clase para poder acceder a su ID y otros datos si es necesario
-		updateView(); // Actualizamos la vista para mostrar los datos del equipo	
+		this.teamModel = teamModel;
+		updateView();
 	}
 
-
 	/**
-	 * Actualiza los campos del formulario con los datos del modelo actual (teamModel).
+	 * Actualiza los campos del formulario con los datos del modelo actual.
 	 */
 	public void updateView() {
-
 		nameTF.setText(teamModel.getName());
 		initialismTF.setText(teamModel.getInitialism());
 
@@ -394,6 +418,66 @@ public class TeamView extends AbstractView {
 			}
 			l++;
 		}
+
+		// CARGAR LOGO EXISTENTE SI EL EQUIPO YA EXISTE
+		if (teamModel != null && teamModel.getId() != null) {
+			String[] formatosPosibles = {".png", ".jpg", ".jpeg"};
+			boolean logoEncontrado = false;
+
+			for (String extension : formatosPosibles) {
+				try {
+					ContentMetadata metadata = new ContentMetadata();
+					metadata.setEntityType("TEAM");
+					metadata.setEntityId(String.valueOf(teamModel.getId()));
+					metadata.setResourceId("logo");
+					metadata.setFormat(extension);
+
+					ContentData data = contentService.get(metadata);
+					if (data != null && data.getRaw() != null && data.getRaw().length > 0) {
+						ImageIcon icon = new ImageIcon(data.getRaw());
+						Image scaledImage = icon.getImage().getScaledInstance(64, 64, Image.SCALE_SMOOTH);
+						logoPreviewLabel.setIcon(new ImageIcon(scaledImage));
+						logoPreviewLabel.setText("");
+						logoEncontrado = true;
+						break;
+					}
+				} catch (Exception e) {
+					// Probar la siguiente extensión
+				}
+			}
+
+			if (!logoEncontrado) {
+				logoPreviewLabel.setIcon(null);
+				logoPreviewLabel.setText("Sin logo");
+			}
+		} else {
+			logoPreviewLabel.setIcon(null);
+			logoPreviewLabel.setText("Sin imagen");
+		}
+	}
+
+	/**
+	 * Método invocado por UploadLogoTeamController para refrescar la imagen en la vista.
+	 */
+	public void setLogoData(byte[] bytes, String extension, ImageIcon previewIcon) {
+		this.selectedLogoBytes = bytes;
+		this.selectedLogoExtension = extension;
+		this.logoPreviewLabel.setIcon(previewIcon);
+		this.logoPreviewLabel.setText("");
+	}
+
+	/**
+	 * Devuelve los bytes de la imagen seleccionada para que el controlador la guarde.
+	 */
+	public byte[] getSelectedLogoBytes() {
+		return selectedLogoBytes;
+	}
+
+	/**
+	 * Devuelve la extensión (.png, .jpg) del archivo cargado.
+	 */
+	public String getSelectedLogoExtension() {
+		return selectedLogoExtension;
 	}
 
 	public void setEditable(boolean editable) {
@@ -403,6 +487,7 @@ public class TeamView extends AbstractView {
 		countryCB.setEnabled(editable);
 		provinceCB.setEnabled(editable);
 		localityCB.setEnabled(editable);
+		uploadLogoButton.setEnabled(editable);
 	}
 
 	public void setAgreeController(AbstractController controller) {
@@ -413,7 +498,7 @@ public class TeamView extends AbstractView {
 		cancelButton.setAction(controller);
 	}
 
-
-
-
+	public void setUploadLogoController(AbstractController controller) {
+		uploadLogoButton.setAction(controller);
+	}
 }

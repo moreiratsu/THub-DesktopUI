@@ -41,7 +41,7 @@ import com.alvaro.thub.desktop.views.ParticipantsByAgeChartView;
 import com.alvaro.thub.desktop.views.PlayerView;
 import com.alvaro.thub.desktop.views.PlayerSearchView;
 import com.alvaro.thub.desktop.views.TeamSearchView;
-import com.alvaro.thub.desktop.views.TeamView;
+import com.alvaro.thub.desktop.views.TeamCreateView;
 import com.alvaro.thub.desktop.views.UserView;
 import com.alvaro.thub.desktop.views.View;
 import com.formdev.flatlaf.FlatDarculaLaf;
